@@ -1,0 +1,13 @@
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+websockets==14.*
+pydantic-settings==2.*
+sqlalchemy==2.*
+aiosqlite==0.21.*
+neo4j==5.*
+chromadb==0.6.*
+google-genai==1.*
+yt-dlp>=2025.1
+pydub==0.25.*
+httpx==0.28.*
+python-dotenv==1.*
