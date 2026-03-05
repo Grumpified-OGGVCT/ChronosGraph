@@ -1,0 +1,23 @@
+⚡ Bolt: Optimize queue and WebSocket rendering, apply security and accessibility enhancements
+
+⚡ Performance Optimization
+💡 What
+- Made SQLite operations non-blocking in `queue.py` using `asyncio.to_thread`.
+- Implemented batched React state updates for WebSocket events in `useGraph.js`.
+- Wrapped frontend components (`Header`, `FilterPanel`, `GraphScene`) with `React.memo`.
+- Refactored `config.py` to remove hardcoded `neo4j_password` and validate secrets using Pydantic.
+- Applied UX & Accessibility patterns to `InputBar`, `StatusIndicator`, and `FilterPanel` (ARIA labels, keyboard navigation, color contrast).
+
+🎯 Why — The Bottleneck
+- Blocking SQLite calls stall FastAPI's event loop.
+- Rendering a massive Graph via WebSocket node-by-node caused severe DOM thrashing and CPU overload.
+- Hardcoded secrets and missing accessibility violated Sentinel & Palette directives.
+
+📊 Impact — Measured Results
+- Backend: Queue calls now use thread pools, preventing event loop blocking.
+- Frontend: Graph updates queue up and flush every 500ms instead of thousands of immediate renders.
+
+🛡️ Safety Analysis
+- Functional correctness: All endpoints and graph renders retain exact existing functionality.
+- Security impact: Eliminated hardcoded defaults and required environment variable secrets.
+- Accessibility impact: All Phase D components properly announce states.
