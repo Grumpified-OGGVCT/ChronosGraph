@@ -47,5 +47,5 @@
 ## Phase F: Video Playback & Polish
 - [x] VideoModal with timestamp seek
 - [ ] Partial-data node warning indicators
-- [ ] README with prerequisites + install guide
+- [x] README with prerequisites + install guide
 - [ ] Final `run.bat` validation
