@@ -35,7 +35,7 @@ def _seconds_to_hms(seconds: float) -> str:
 async def download_video(url: str) -> Optional[str]:
     output_dir = settings.resolve_path(settings.video_cache_dir)
     cmd = ["yt-dlp", "-o", str(output_dir / "%(id)s.%(ext)s"),
-           "--no-playlist", "--merge-output-format", "mp4", url]
+           "--no-playlist", "--merge-output-format", "mp4", "--", url]
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -54,7 +54,7 @@ async def download_video(url: str) -> Optional[str]:
 async def get_video_title(url: str) -> str:
     try:
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--get-title", "--no-playlist", url,
+            "yt-dlp", "--get-title", "--no-playlist", "--", url,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, _ = await proc.communicate()
         return stdout.decode().strip() or "Untitled"
@@ -66,7 +66,7 @@ async def extract_subtitles(url: str) -> Optional[str]:
     output_dir = settings.resolve_path(settings.audio_cache_dir)
     cmd = ["yt-dlp", "--write-auto-sub", "--sub-lang", "en", "--skip-download",
            "--write-sub", "--sub-format", "vtt", "-o", str(output_dir / "%(id)s"),
-           "--no-playlist", url]
+           "--no-playlist", "--", url]
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -178,7 +178,7 @@ async def cleanup_audio(video_id: str) -> None:
 
 async def expand_playlist(url: str) -> list[dict]:
     import json
-    cmd = ["yt-dlp", "--flat-playlist", "--dump-json", url]
+    cmd = ["yt-dlp", "--flat-playlist", "--dump-json", "--", url]
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
