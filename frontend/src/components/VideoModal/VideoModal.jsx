@@ -15,17 +15,28 @@ export default function VideoModal({ videoId, timestamp, onClose }) {
     }
   }, [timestamp])
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal video-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} aria-hidden="true">
+      <div className="modal video-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="video-modal-title">
         <div className="modal-header">
-          <h3>🎬 Video: {videoId}</h3>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <h3 id="video-modal-title"><span aria-hidden="true">🎬</span> Video: {videoId}</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close video">
+             <span aria-hidden="true">✕</span>
+          </button>
         </div>
         <video ref={videoRef}
           src={`/api/video/${videoId}`}
           controls
           preload="auto"
+          aria-label={`Video player for ${videoId}`}
         />
       </div>
     </div>

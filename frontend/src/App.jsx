@@ -85,6 +85,8 @@ function App() {
         onSearch={handleSearch}
         onToggleErrors={() => setShowErrorLog(!showErrorLog)}
         onToggleFilters={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+        showErrorLog={showErrorLog}
       />
       <main className="app-main">
         <GraphScene
@@ -104,7 +106,7 @@ function App() {
           />
         )}
       </main>
-      <div className="toast-container">
+      <div className="toast-container" aria-live="polite">
         {toasts.map(t => <Toast key={t.id} {...t} onDismiss={() =>
           setToasts(prev => prev.filter(x => x.id !== t.id))} />)}
       </div>

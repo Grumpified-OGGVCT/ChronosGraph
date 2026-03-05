@@ -20,16 +20,23 @@ export default function InputBar() {
   }, [url, loading])
 
   return (
-    <form className="input-bar" onSubmit={handleSubmit}>
+    <form className="input-bar" onSubmit={handleSubmit} aria-label="Ingest YouTube URL">
+      <label htmlFor="url-input" className="sr-only">Paste YouTube URL or playlist</label>
       <input
+        id="url-input"
         type="text"
         value={url}
         onChange={e => setUrl(e.target.value)}
         placeholder="Paste YouTube URL or playlist..."
         disabled={loading}
       />
-      <button type="submit" disabled={loading || !url.trim()}>
-        {loading ? '⏳' : 'Process'}
+      <button type="submit" disabled={loading || !url.trim()} aria-disabled={loading || !url.trim()}>
+        {loading ? (
+          <>
+            <span aria-hidden="true">⏳</span>
+            <span className="sr-only">Processing...</span>
+          </>
+        ) : 'Process'}
       </button>
     </form>
   )
