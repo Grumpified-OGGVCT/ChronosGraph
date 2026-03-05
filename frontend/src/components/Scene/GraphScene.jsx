@@ -123,7 +123,7 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
         if (!node) return null
         return (
           <Html position={[node.x, node.y + 2, node.z]} center style={{pointerEvents:'none'}}>
-            <div className="node-tooltip">
+            <div className="node-tooltip" role="tooltip">
               <div className="tt-name">{node.name}</div>
               <div className="tt-type" style={{color: TYPE_COLORS[node.type]}}>{node.type}</div>
             </div>
@@ -137,18 +137,30 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
         if (!pos) return null
         return (
           <Html position={[pos.x + 3, pos.y, pos.z]} style={{pointerEvents:'auto'}}>
-            <div className="holo-card">
-              <button className="close-card" onClick={() => setSelectedNode(null)}>✕</button>
-              <h4>{selectedNode.name}</h4>
+            <div className="holo-card" role="region" aria-label="Node Details">
+              <button className="close-card" onClick={() => setSelectedNode(null)} aria-label="Close details">✕</button>
+              <h4 id={`holo-title-${selectedNode.id}`}>{selectedNode.name}</h4>
               <div className="entity-type" style={{color: TYPE_COLORS[selectedNode.type]}}>
                 {selectedNode.type}
               </div>
               <div className="entity-desc">{selectedNode.description || 'No description available'}</div>
               {selectedNode.video_sources && selectedNode.video_sources.length > 0 && (
-                <ul className="evidence-list">
+                <ul className="evidence-list" aria-label="Video Sources">
                   {selectedNode.video_sources.slice(0, 5).map((vs, i) => (
-                    <li key={i} onClick={() => onVideoClick?.(vs.video_id, vs.timestamp)}>
-                      🎬 {vs.video_id} @ {vs.timestamp || '0:00'}
+                    <li
+                      key={i}
+                      onClick={() => onVideoClick?.(vs.video_id, vs.timestamp)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onVideoClick?.(vs.video_id, vs.timestamp);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Open video ${vs.video_id} at ${vs.timestamp || '0:00'}`}
+                    >
+                      <span aria-hidden="true">🎬</span> {vs.video_id} @ {vs.timestamp || '0:00'}
                     </li>
                   ))}
                 </ul>
@@ -167,15 +179,15 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
 export default function GraphScene({ data, loading, focusNodeIds, selectedNode, onNodeClick, onVideoClick }) {
   if (loading) {
     return (
-      <div className="scene-loading">
-        <div className="spinner" />
+      <div className="scene-loading" role="status" aria-live="polite">
+        <div className="spinner" aria-hidden="true" />
         <span>Loading Knowledge Graph...</span>
       </div>
     )
   }
 
   return (
-    <div className="graph-scene">
+    <div className="graph-scene" aria-label="Knowledge Graph Visualization" role="application">
       <Canvas camera={{ position: [0, 50, 150], fov: 60 }} gl={{ antialias: true, alpha: false }}
         style={{ background: '#0a0a0f' }}>
         <ambientLight intensity={0.4} />
@@ -186,7 +198,7 @@ export default function GraphScene({ data, loading, focusNodeIds, selectedNode, 
           onNodeClick={onNodeClick} onVideoClick={onVideoClick} />
         <OrbitControls enableDamping dampingFactor={0.08} minDistance={10} maxDistance={500} />
       </Canvas>
-      <div className="node-count">
+      <div className="node-count" aria-live="polite" aria-atomic="true">
         {data.nodes.length} nodes · {data.edges.length} edges
       </div>
     </div>

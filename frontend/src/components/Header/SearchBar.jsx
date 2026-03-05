@@ -22,15 +22,31 @@ export default function SearchBar({ onResults }) {
   }, [onResults])
 
   return (
-    <form className="search-bar" onSubmit={handleSearch}>
-      <span className="search-icon">🔍</span>
+    <form className="search-bar" onSubmit={handleSearch} role="search" aria-label="Search entities">
+      <label htmlFor="search-input" className="sr-only">Search query</label>
+      <span className="search-icon" aria-hidden="true">🔍</span>
       <input
-        type="text"
+        id="search-input"
+        type="search"
         value={query}
         onChange={e => setQuery(e.target.value)}
         placeholder="Search entities..."
       />
-      {query && <button type="button" onClick={handleClear} style={{background:'transparent',border:'none',color:'var(--text-muted)',cursor:'pointer'}}>✕</button>}
+      {query && (
+        <button
+          type="button"
+          onClick={handleClear}
+          aria-label="Clear search"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      )}
     </form>
   )
 }
