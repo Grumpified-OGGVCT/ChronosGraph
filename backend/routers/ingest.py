@@ -11,8 +11,8 @@ from services.ws_manager import ws_manager
 router = APIRouter(prefix="/api", tags=["ingest"])
 logger = logging.getLogger("chronosgraph.ingest")
 
-PLAYLIST_PATTERN = re.compile(r"[?&]list=([a-zA-Z0-9_-]+)")
-VIDEO_PATTERN = re.compile(r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]+)")
+PLAYLIST_PATTERN = re.compile(r"^https?://(?:www\.)?youtube\.com/.*[?&]list=([a-zA-Z0-9_-]+)(?:&.*)?$")
+VIDEO_PATTERN = re.compile(r"^https?://(?:www\.)?(?:youtube\.com/watch\?.*v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})(?:[?&].*)?$")
 
 
 @router.post("/ingest", response_model=IngestResponse)
@@ -21,7 +21,7 @@ async def ingest_url(request: IngestRequest) -> IngestResponse:
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
 
-    playlist_match = PLAYLIST_PATTERN.search(url)
+    playlist_match = PLAYLIST_PATTERN.match(url)
     if playlist_match:
         playlist_id = playlist_match.group(1)
         job_id = str(uuid.uuid4())
@@ -29,7 +29,7 @@ async def ingest_url(request: IngestRequest) -> IngestResponse:
         count = await get_queue_count()
         await ws_manager.broadcast_queue_update(count)
         return IngestResponse(status="queued", count=1, message=f"Playlist {playlist_id} queued")
-    elif VIDEO_PATTERN.search(url):
+    elif VIDEO_PATTERN.match(url):
         job_id = str(uuid.uuid4())
         await enqueue_job(job_id, url)
         count = await get_queue_count()
