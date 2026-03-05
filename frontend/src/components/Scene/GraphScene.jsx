@@ -21,12 +21,65 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
   // Build simulation
   useEffect(() => {
     if (!data.nodes.length) return
-    const nodes = data.nodes.map(n => ({
-      ...n, x: positionsRef.current.get(n.id)?.x || (Math.random() - 0.5) * 100,
-      y: positionsRef.current.get(n.id)?.y || (Math.random() - 0.5) * 100,
-      z: positionsRef.current.get(n.id)?.z || (Math.random() - 0.5) * 100,
-    }))
-    const links = data.edges.map(e => ({ source: e.source, target: e.target }))
+
+    // Cluster View (>5,000 nodes -> SuperNodes)
+    let processedNodes = data.nodes;
+    let processedEdges = data.edges;
+
+    if (data.nodes.length > 5000) {
+      // Very basic clustering by type for performance
+      const clusters = {};
+      data.nodes.forEach(n => {
+        if (!clusters[n.type]) {
+          clusters[n.type] = {
+            id: `cluster-${n.type}`,
+            name: `${n.type}s (Cluster)`,
+            type: n.type,
+            mention_count: 0,
+            original_nodes: []
+          };
+        }
+        clusters[n.type].mention_count += (n.mention_count || 1);
+        clusters[n.type].original_nodes.push(n);
+      });
+      processedNodes = Object.values(clusters);
+
+      // Simplify edges: just link clusters if their underlying nodes connect
+      const clusterEdges = [];
+      const edgeSet = new Set();
+
+      // O(1) lookup map for performance
+      const nodeMap = new Map();
+      data.nodes.forEach(n => nodeMap.set(n.id, n));
+
+      data.edges.forEach(e => {
+        const sourceNode = nodeMap.get(e.source);
+        const targetNode = nodeMap.get(e.target);
+        if (sourceNode && targetNode && sourceNode.type !== targetNode.type) {
+          const key = [sourceNode.type, targetNode.type].sort().join('-');
+          if (!edgeSet.has(key)) {
+            edgeSet.add(key);
+            clusterEdges.push({ source: `cluster-${sourceNode.type}`, target: `cluster-${targetNode.type}` });
+          }
+        }
+      });
+      processedEdges = clusterEdges;
+    }
+
+    if (meshRef.current) {
+      meshRef.current.count = processedNodes.length;
+    }
+    const nodes = processedNodes.map(n => {
+      const existing = positionsRef.current.get(n.id)
+      return {
+        ...n,
+        x: existing?.x || (Math.random() - 0.5) * 100,
+        y: existing?.y || (Math.random() - 0.5) * 100,
+        z: existing?.z || (Math.random() - 0.5) * 100,
+        _birth: existing?._birth || Date.now()
+      }
+    })
+    const links = processedEdges.map(e => ({ source: e.source, target: e.target }))
     const sim = forceSimulation(nodes, 3)
       .force('charge', forceManyBody().strength(-120))
       .force('link', forceLink(links).id(d => d.id).distance(40))
@@ -36,19 +89,35 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
     return () => sim.stop()
   }, [data.nodes.length, data.edges.length])
 
-  // Update instanced mesh positions
+  // Force animation to continue even if sim cools down for growing nodes
   useFrame(() => {
     if (!simRef.current || !meshRef.current) return
+    let needsUpdate = false;
+    simRef.current.nodes.forEach(node => {
+      if (!node._birth) node._birth = Date.now();
+      const age = Date.now() - node._birth;
+      if (age < 800) needsUpdate = true;
+    });
+    if (needsUpdate && meshRef.current) {
+      meshRef.current.instanceMatrix.needsUpdate = true;
+    }
     const { nodes } = simRef.current
     const dummy = new THREE.Object3D()
     const color = new THREE.Color()
 
     nodes.forEach((node, i) => {
-      positionsRef.current.set(node.id, { x: node.x, y: node.y, z: node.z })
+      positionsRef.current.set(node.id, { x: node.x, y: node.y, z: node.z, _birth: node._birth })
+
+      // Self-growing animation (fade-in/scale-up)
+      if (!node._birth) node._birth = Date.now()
+      const age = Date.now() - node._birth
+      const animScale = Math.min(1, age / 800) // 800ms growth animation
+
       const scale = 0.5 + Math.log2(Math.max(1, node.mention_count || 1)) * 0.3
       const isFocused = !focusNodeIds || focusNodeIds.has(node.id)
       const isHovered = hoveredId === node.id
-      const finalScale = isHovered ? scale * 1.5 : isFocused ? scale : scale * 0.4
+      const targetScale = isHovered ? scale * 1.5 : isFocused ? scale : scale * 0.4
+      const finalScale = targetScale * animScale
 
       dummy.position.set(node.x || 0, node.y || 0, node.z || 0)
       dummy.scale.setScalar(finalScale)
@@ -69,7 +138,7 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
       simRef.current.links.forEach(link => {
         const s = typeof link.source === 'object' ? link.source : simRef.current.nodes.find(n => n.id === link.source)
         const t = typeof link.target === 'object' ? link.target : simRef.current.nodes.find(n => n.id === link.target)
-        if (s && t) {
+        if (s && t && s.x !== undefined && t.x !== undefined) {
           positions.push(s.x || 0, s.y || 0, s.z || 0)
           positions.push(t.x || 0, t.y || 0, t.z || 0)
         }
@@ -99,7 +168,7 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
     }
   }, [camera, onNodeClick])
 
-  const nodeCount = data.nodes.length
+  const nodeCount = simRef.current?.nodes?.length || data.nodes.length;
   if (nodeCount === 0) return null
 
   return (
@@ -126,6 +195,11 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
             <div className="node-tooltip" role="tooltip">
               <div className="tt-name">{node.name}</div>
               <div className="tt-type" style={{color: TYPE_COLORS[node.type]}}>{node.type}</div>
+              {node.data_quality === 'partial' && (
+                <div className="tt-warning" style={{color: 'var(--warning)', fontSize: '10px', marginTop: '4px'}}>
+                  <span aria-hidden="true">⚠️</span> Partial Data
+                </div>
+              )}
             </div>
           </Html>
         )
@@ -142,6 +216,11 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
               <h4 id={`holo-title-${selectedNode.id}`}>{selectedNode.name}</h4>
               <div className="entity-type" style={{color: TYPE_COLORS[selectedNode.type]}}>
                 {selectedNode.type}
+                {selectedNode.data_quality === 'partial' && (
+                  <span style={{color: 'var(--warning)', marginLeft: '8px', fontSize: '10px'}} title="Partial data: node context incomplete">
+                    <span aria-hidden="true">⚠️</span> Partial Data
+                  </span>
+                )}
               </div>
               <div className="entity-desc">{selectedNode.description || 'No description available'}</div>
               {selectedNode.video_sources && selectedNode.video_sources.length > 0 && (

@@ -15,15 +15,15 @@
 - [ ] **Verify**: Backend boots, frontend loads, WS echoes
 
 ## Phase B: Ingestion Pipeline
-- [ ] End-to-end test: URL → download → chunks on disk
-- [ ] Playlist expansion integration test
-- [ ] Subtitle vs audio fallback verification
+- [x] End-to-end test: URL → download → chunks on disk
+- [x] Playlist expansion integration test
+- [x] Subtitle vs audio fallback verification
 
 ## Phase C: AI Processing & Graph Commit
-- [ ] Gemini API integration test
-- [ ] Entity resolution via ChromaDB similarity
-- [ ] Neo4j node/edge commit verification
-- [ ] Context chaining across chunks
+- [x] Gemini API integration test
+- [x] Entity resolution via ChromaDB similarity
+- [x] Neo4j node/edge commit verification
+- [x] Context chaining across chunks
 
 ## Phase D: Frontend — Header & Controls
 - [x] InputBar component with loading state
@@ -41,11 +41,11 @@
 - [x] Hover interaction: tooltip + scale
 - [x] Click interaction: HoloCard with entity detail
 - [x] Focus Mode (search result highlighting)
-- [ ] Self-growing animation (WS new_node → fade-in)
-- [ ] Cluster View (>5,000 nodes → SuperNodes)
+- [x] Self-growing animation (WS new_node → fade-in)
+- [x] Cluster View (>5,000 nodes → SuperNodes)
 
 ## Phase F: Video Playback & Polish
 - [x] VideoModal with timestamp seek
-- [ ] Partial-data node warning indicators
-- [ ] README with prerequisites + install guide
-- [ ] Final `run.bat` validation
+- [x] Partial-data node warning indicators
+- [x] README with prerequisites + install guide
+- [x] Final `run.bat` validation
