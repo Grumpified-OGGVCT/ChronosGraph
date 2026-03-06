@@ -197,7 +197,12 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
 
   return (
     <>
-      <instancedMesh ref={meshRef} args={[null, null, nodeCount]}
+      {/*
+        Key forces React to remount the instancedMesh entirely when nodeCount changes,
+        which is necessary because 'args' (the buffer size) only evaluate on initial mount in R3F.
+        This provides true reactivity for dynamically growing data.
+      */}
+      <instancedMesh key={`mesh-${nodeCount}`} ref={meshRef} args={[null, null, nodeCount]}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoveredId(null)}
         onClick={handleClick}>
