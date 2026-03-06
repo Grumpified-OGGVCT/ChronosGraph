@@ -64,44 +64,67 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
     return { processedNodes: nodes, processedEdges: edges };
   }, [data.nodes, data.edges]);
 
-  // Build simulation
+  // Build or Update simulation reactively
   useEffect(() => {
     if (!processedNodes.length) return
 
+    // Map new props to mutable physics nodes, preserving existing position/velocity
     const nodes = processedNodes.map(n => {
-      const existing = positionsRef.current.get(n.id)
+      // Find existing node in running simulation if it exists
+      const existingSimNode = simRef.current?.nodes?.find(old => old.id === n.id)
+      const existingPos = positionsRef.current.get(n.id)
+
       return {
         ...n,
-        x: existing?.x || (Math.random() - 0.5) * 100,
-        y: existing?.y || (Math.random() - 0.5) * 100,
-        z: existing?.z || (Math.random() - 0.5) * 100,
-        _birth: existing?._birth || Date.now()
+        x: existingSimNode?.x || existingPos?.x || (Math.random() - 0.5) * 100,
+        y: existingSimNode?.y || existingPos?.y || (Math.random() - 0.5) * 100,
+        z: existingSimNode?.z || existingPos?.z || (Math.random() - 0.5) * 100,
+        vx: existingSimNode?.vx || 0,
+        vy: existingSimNode?.vy || 0,
+        vz: existingSimNode?.vz || 0,
+        _birth: existingSimNode?._birth || existingPos?._birth || Date.now()
       }
     })
 
     const links = processedEdges.map(e => ({ source: e.source, target: e.target, isTether: e.isTether }))
-    const sim = forceSimulation(nodes, 3)
-      .force('charge', forceManyBody().strength(-120))
-      .force('link', forceLink(links).id(d => d.id).distance(l => l.isTether ? 15 : 40))
-      .force('center', forceCenter())
 
-    sim.alpha(0.3).restart()
-    simRef.current = { sim, nodes, links }
-    return () => sim.stop()
+    if (!simRef.current) {
+      // Initialize new simulation
+      const sim = forceSimulation(nodes, 3)
+        .force('charge', forceManyBody().strength(-120))
+        .force('link', forceLink(links).id(d => d.id).distance(l => l.isTether ? 15 : 40))
+        .force('center', forceCenter())
+
+      sim.alpha(1).restart()
+      simRef.current = { sim, nodes, links }
+    } else {
+      // Reactively update existing simulation
+      simRef.current.sim.nodes(nodes)
+      simRef.current.sim.force('link').links(links)
+
+      // Give a small energy bump to allow new nodes to settle without exploding layout
+      simRef.current.sim.alpha(0.1).restart()
+
+      simRef.current.nodes = nodes
+      simRef.current.links = links
+    }
+
+    return () => {
+      // We don't stop the simulation on unmount/re-render to allow it to run continuously
+      // Only stop it if the component fully unmounts, handled in a separate hook if needed.
+    }
   }, [processedNodes, processedEdges])
+
+  // Cleanup simulation on full unmount
+  useEffect(() => {
+    return () => {
+      if (simRef.current?.sim) simRef.current.sim.stop()
+    }
+  }, [])
 
   // Force animation to continue even if sim cools down for growing nodes
   useFrame(() => {
     if (!simRef.current || !meshRef.current) return
-    let needsUpdate = false;
-    simRef.current.nodes.forEach(node => {
-      if (!node._birth) node._birth = Date.now();
-      const age = Date.now() - node._birth;
-      if (age < 800) needsUpdate = true;
-    });
-    if (needsUpdate && meshRef.current) {
-      meshRef.current.instanceMatrix.needsUpdate = true;
-    }
     const { nodes } = simRef.current
     const dummy = new THREE.Object3D()
     const color = new THREE.Color()
@@ -174,7 +197,12 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
 
   return (
     <>
-      <instancedMesh ref={meshRef} args={[null, null, nodeCount]}
+      {/*
+        Key forces React to remount the instancedMesh entirely when nodeCount changes,
+        which is necessary because 'args' (the buffer size) only evaluate on initial mount in R3F.
+        This provides true reactivity for dynamically growing data.
+      */}
+      <instancedMesh key={`mesh-${nodeCount}`} ref={meshRef} args={[null, null, nodeCount]}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoveredId(null)}
         onClick={handleClick}>
