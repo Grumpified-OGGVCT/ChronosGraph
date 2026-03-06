@@ -38,18 +38,21 @@ async def query_rag(request: RagRequest) -> RagResponse:
     context_text = "\n\n---\n\n".join(context_chunks)
 
     # 3. Prompt Gemini 2.5 Pro with context
-    prompt = f"""You are an AI assistant analyzing a knowledge graph. Answer the user's query based strictly on the provided context entities below.
+    # Structurally separate system instructions from user query to mitigate prompt injection
+    system_instruction = f"""You are an AI assistant analyzing a knowledge graph. Answer the user's query based strictly on the provided context entities below.
 If the answer cannot be found in the context, say "I don't have enough information to answer that."
 
-USER QUERY: {request.query}
-
 KNOWLEDGE GRAPH CONTEXT:
-{context_text}
-"""
+{context_text}"""
 
     try:
         client = get_client()
-        response = client.models.generate_content(model=settings.model_version, contents=prompt)
+        # Use config passing for system instructions if supported, or structured parts
+        response = client.models.generate_content(
+            model=settings.model_version,
+            contents=request.query,
+            config={"system_instruction": system_instruction}
+        )
         answer = response.text or "Error generating response."
     except Exception as e:
         logger.error("RAG generation failed: %s", e)

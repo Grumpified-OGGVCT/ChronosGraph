@@ -41,6 +41,24 @@ export default function FilterPanel({ metadata, filters, onChange, onClose }) {
       </div>
 
       <div className="filter-section">
+        <label htmlFor="date-range" style={{display:'block',fontSize:'11px',fontWeight:500,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'8px'}}>
+          Date Range (Optional)
+        </label>
+        <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+          <input type="date" className="filter-input"
+            style={{background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', padding:'4px 8px', borderRadius:'4px', fontSize:'12px', flex:1}}
+            value={filters.dateRange?.start || ''}
+            onChange={e => onChange({ ...filters, dateRange: { ...filters.dateRange, start: e.target.value }})}
+            aria-label="Start Date"
+          />
+          <input type="date" className="filter-input"
+            style={{background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', padding:'4px 8px', borderRadius:'4px', fontSize:'12px', flex:1}}
+            value={filters.dateRange?.end || ''}
+            onChange={e => onChange({ ...filters, dateRange: { ...filters.dateRange, end: e.target.value }})}
+            aria-label="End Date"
+          />
+        </div>
+
         <label htmlFor="confidence-slider" style={{display:'block',fontSize:'11px',fontWeight:500,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'8px'}}>
           Min Confidence: <span className="filter-value">{(filters.confidence * 100).toFixed(0)}%</span>
         </label>

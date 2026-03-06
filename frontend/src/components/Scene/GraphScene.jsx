@@ -156,19 +156,39 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
     meshRef.current.instanceMatrix.needsUpdate = true
     if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true
 
-    // Update edges
+    // Update edges with hover brightening
     if (linesRef.current && simRef.current.links) {
       const positions = []
+      const colors = []
+      const colorObj = new THREE.Color()
+
       simRef.current.links.forEach(link => {
         const s = typeof link.source === 'object' ? link.source : simRef.current.nodes.find(n => n.id === link.source)
         const t = typeof link.target === 'object' ? link.target : simRef.current.nodes.find(n => n.id === link.target)
+
         if (s && t && s.x !== undefined && t.x !== undefined) {
           positions.push(s.x || 0, s.y || 0, s.z || 0)
           positions.push(t.x || 0, t.y || 0, t.z || 0)
+
+          // Hover logic
+          const isEdgeHovered = hoveredId === s.id || hoveredId === t.id
+          const isEdgeFocused = !focusNodeIds || focusNodeIds.has(s.id) || focusNodeIds.has(t.id)
+
+          if (isEdgeHovered) {
+             colorObj.set('#00d4ff') // Bright accent for hovered edges
+          } else if (link.isTether) {
+             colorObj.set('#a855f7').multiplyScalar(0.4) // Subtle tether color
+          } else {
+             colorObj.set('#334455')
+             if (!isEdgeFocused) colorObj.multiplyScalar(0.3)
+          }
+
+          colors.push(colorObj.r, colorObj.g, colorObj.b)
+          colors.push(colorObj.r, colorObj.g, colorObj.b)
         }
       })
-      linesRef.current.geometry.setAttribute('position',
-        new THREE.Float32BufferAttribute(positions, 3))
+      linesRef.current.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+      linesRef.current.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
     }
   })
 
@@ -212,7 +232,7 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
 
       <lineSegments ref={linesRef}>
         <bufferGeometry />
-        <lineBasicMaterial color="#334455" opacity={0.4} transparent />
+        <lineBasicMaterial vertexColors opacity={0.6} transparent />
       </lineSegments>
 
       {/* Tooltip on hover */}
