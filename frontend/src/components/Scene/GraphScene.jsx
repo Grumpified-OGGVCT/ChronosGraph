@@ -18,57 +18,68 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
   const simRef = useRef(null)
   const positionsRef = useRef(new Map())
 
-  // Build simulation
-  useEffect(() => {
-    if (!data.nodes.length) return
-
-    // Cluster View (>5,000 nodes -> SuperNodes)
-    let processedNodes = data.nodes;
-    let processedEdges = data.edges;
+  // Reactive clustering logic
+  const { processedNodes, processedEdges } = useMemo(() => {
+    let nodes = [...data.nodes];
+    let edges = [...data.edges];
 
     if (data.nodes.length > 5000) {
-      // Very basic clustering by type for performance
-      const clusters = {};
+      const typeGroups = new Map();
+      const clusterMap = new Map();
+
       data.nodes.forEach(n => {
-        if (!clusters[n.type]) {
-          clusters[n.type] = {
-            id: `cluster-${n.type}`,
-            name: `${n.type}s (Cluster)`,
-            type: n.type,
-            mention_count: 0,
-            original_nodes: []
-          };
-        }
-        clusters[n.type].mention_count += (n.mention_count || 1);
-        clusters[n.type].original_nodes.push(n);
+        if (!typeGroups.has(n.type)) typeGroups.set(n.type, []);
+        typeGroups.get(n.type).push(n);
       });
-      processedNodes = Object.values(clusters);
 
-      // Simplify edges: just link clusters if their underlying nodes connect
-      const clusterEdges = [];
+      const newNodes = [];
+      const newEdges = [];
+
+      typeGroups.forEach((nodesOfType, type) => {
+        const superNodeId = `supernode-${type}`;
+        if (nodesOfType.length > 5) {
+          // Collapse into SuperNode
+          newNodes.push({
+            id: superNodeId,
+            name: `${type} Cluster`,
+            type: type,
+            mention_count: nodesOfType.reduce((sum, n) => sum + (n.mention_count || 1), 0),
+            isSuperNode: true,
+            data_quality: 'complete'
+          });
+          nodesOfType.forEach(n => clusterMap.set(n.id, superNodeId));
+        } else {
+          // Keep individual node
+          nodesOfType.forEach(n => {
+            newNodes.push(n);
+            clusterMap.set(n.id, n.id);
+          });
+        }
+      });
+
       const edgeSet = new Set();
-
-      // O(1) lookup map for performance
-      const nodeMap = new Map();
-      data.nodes.forEach(n => nodeMap.set(n.id, n));
-
       data.edges.forEach(e => {
-        const sourceNode = nodeMap.get(e.source);
-        const targetNode = nodeMap.get(e.target);
-        if (sourceNode && targetNode && sourceNode.type !== targetNode.type) {
-          const key = [sourceNode.type, targetNode.type].sort().join('-');
+        const sourceId = clusterMap.get(e.source) || e.source;
+        const targetId = clusterMap.get(e.target) || e.target;
+        if (sourceId !== targetId) {
+          const key = [sourceId, targetId].sort().join('-');
           if (!edgeSet.has(key)) {
             edgeSet.add(key);
-            clusterEdges.push({ source: `cluster-${sourceNode.type}`, target: `cluster-${targetNode.type}` });
+            newEdges.push({ source: sourceId, target: targetId, isTether: false });
           }
         }
       });
-      processedEdges = clusterEdges;
-    }
 
-    if (meshRef.current) {
-      meshRef.current.count = processedNodes.length;
+      nodes = newNodes;
+      edges = newEdges;
     }
+    return { processedNodes: nodes, processedEdges: edges };
+  }, [data.nodes, data.edges]);
+
+  // Build simulation
+  useEffect(() => {
+    if (!processedNodes.length) return
+
     const nodes = processedNodes.map(n => {
       const existing = positionsRef.current.get(n.id)
       return {
@@ -79,15 +90,17 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
         _birth: existing?._birth || Date.now()
       }
     })
-    const links = processedEdges.map(e => ({ source: e.source, target: e.target }))
+
+    const links = processedEdges.map(e => ({ source: e.source, target: e.target, isTether: e.isTether }))
     const sim = forceSimulation(nodes, 3)
       .force('charge', forceManyBody().strength(-120))
-      .force('link', forceLink(links).id(d => d.id).distance(40))
+      .force('link', forceLink(links).id(d => d.id).distance(l => l.isTether ? 15 : 40))
       .force('center', forceCenter())
+
     sim.alpha(0.3).restart()
     simRef.current = { sim, nodes, links }
     return () => sim.stop()
-  }, [data.nodes.length, data.edges.length])
+  }, [processedNodes, processedEdges])
 
   // Force animation to continue even if sim cools down for growing nodes
   useFrame(() => {
@@ -168,7 +181,7 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
     }
   }, [camera, onNodeClick])
 
-  const nodeCount = simRef.current?.nodes?.length || data.nodes.length;
+  const nodeCount = processedNodes.length;
   if (nodeCount === 0) return null
 
   return (
