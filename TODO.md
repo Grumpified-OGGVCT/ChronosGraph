@@ -23,7 +23,7 @@
 - [ ] Gemini API integration test
 - [ ] Entity resolution via ChromaDB similarity
 - [ ] Neo4j node/edge commit verification
-- [ ] Context chaining across chunks
+- [x] Context chaining across chunks
 
 ## Phase D: Frontend — Header & Controls
 - [x] InputBar component with loading state
@@ -31,13 +31,13 @@
 - [x] SearchBar with Focus Mode dispatch
 - [x] Toast notifications (slide-in, auto-dismiss)
 - [x] ErrorLog modal with retry buttons
-- [x] FilterPanel: entity type, date range, confidence sliders
+- [ ] FilterPanel: entity type, date range, confidence sliders
 
 ## Phase E: 3D Visualization — "The Holodeck"
 - [x] Three.js scene setup with dark environment
 - [x] d3-force-3d layout with temporal Z-axis
 - [x] Instanced node rendering (color by type, scale by mentions)
-- [x] Edge rendering with hover brightening
+- [ ] Edge rendering with hover brightening
 - [x] Hover interaction: tooltip + scale
 - [x] Click interaction: HoloCard with entity detail
 - [x] Focus Mode (search result highlighting)

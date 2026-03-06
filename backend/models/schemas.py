@@ -96,3 +96,11 @@ class SearchResult(BaseModel):
 class FilterMetadata(BaseModel):
     entity_types: list[str] = []
     date_range: dict[str, Optional[str]] = {"min": None, "max": None}
+
+class RagRequest(BaseModel):
+    query: str
+    limit: int = 10
+
+class RagResponse(BaseModel):
+    answer: str
+    sources: list[SearchResult] = []

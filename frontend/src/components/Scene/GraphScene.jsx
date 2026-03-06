@@ -18,61 +18,49 @@ function ForceGraph({ data, focusNodeIds, onNodeClick, onVideoClick }) {
   const simRef = useRef(null)
   const positionsRef = useRef(new Map())
 
-  // Reactive clustering logic
+  // Advanced Cluster View (>5,000 nodes -> SuperNodes)
+  // Preserves all existing nodes, injects gravitational SuperNodes
   const { processedNodes, processedEdges } = useMemo(() => {
     let nodes = [...data.nodes];
     let edges = [...data.edges];
 
     if (data.nodes.length > 5000) {
       const typeGroups = new Map();
-      const clusterMap = new Map();
 
+      // Group existing nodes by type
       data.nodes.forEach(n => {
         if (!typeGroups.has(n.type)) typeGroups.set(n.type, []);
         typeGroups.get(n.type).push(n);
       });
 
-      const newNodes = [];
-      const newEdges = [];
-
+      // Inject SuperNodes and tether existing nodes to them
       typeGroups.forEach((nodesOfType, type) => {
         const superNodeId = `supernode-${type}`;
+
+        // Only create a SuperNode if the cluster is significant
         if (nodesOfType.length > 5) {
-          // Collapse into SuperNode
-          newNodes.push({
+          nodes.push({
             id: superNodeId,
             name: `${type} Cluster`,
             type: type,
-            mention_count: nodesOfType.reduce((sum, n) => sum + (n.mention_count || 1), 0),
+            mention_count: nodesOfType.length * 2, // Make it visibly larger
             isSuperNode: true,
             data_quality: 'complete'
           });
-          nodesOfType.forEach(n => clusterMap.set(n.id, superNodeId));
-        } else {
-          // Keep individual node
+
+          // Tether nodes to their SuperNode
           nodesOfType.forEach(n => {
-            newNodes.push(n);
-            clusterMap.set(n.id, n.id);
+            edges.push({
+              source: n.id,
+              target: superNodeId,
+              type: 'TETHER',
+              isTether: true
+            });
           });
         }
       });
-
-      const edgeSet = new Set();
-      data.edges.forEach(e => {
-        const sourceId = clusterMap.get(e.source) || e.source;
-        const targetId = clusterMap.get(e.target) || e.target;
-        if (sourceId !== targetId) {
-          const key = [sourceId, targetId].sort().join('-');
-          if (!edgeSet.has(key)) {
-            edgeSet.add(key);
-            newEdges.push({ source: sourceId, target: targetId, isTether: false });
-          }
-        }
-      });
-
-      nodes = newNodes;
-      edges = newEdges;
     }
+
     return { processedNodes: nodes, processedEdges: edges };
   }, [data.nodes, data.edges]);
 
