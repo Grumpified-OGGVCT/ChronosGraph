@@ -23,29 +23,29 @@
 - [ ] Gemini API integration test
 - [ ] Entity resolution via ChromaDB similarity
 - [ ] Neo4j node/edge commit verification
-- [ ] Context chaining across chunks
+- [x] Context chaining across chunks
 
 ## Phase D: Frontend — Header & Controls
-- [ ] InputBar component with loading state
-- [ ] StatusIndicator (WS-driven: idle/active/queue)
-- [ ] SearchBar with Focus Mode dispatch
-- [ ] Toast notifications (slide-in, auto-dismiss)
-- [ ] ErrorLog modal with retry buttons
+- [x] InputBar component with loading state
+- [x] StatusIndicator (WS-driven: idle/active/queue)
+- [x] SearchBar with Focus Mode dispatch
+- [x] Toast notifications (slide-in, auto-dismiss)
+- [x] ErrorLog modal with retry buttons
 - [ ] FilterPanel: entity type, date range, confidence sliders
 
 ## Phase E: 3D Visualization — "The Holodeck"
-- [ ] Three.js scene setup with dark environment
-- [ ] d3-force-3d layout with temporal Z-axis
-- [ ] Instanced node rendering (color by type, scale by mentions)
+- [x] Three.js scene setup with dark environment
+- [x] d3-force-3d layout with temporal Z-axis
+- [x] Instanced node rendering (color by type, scale by mentions)
 - [ ] Edge rendering with hover brightening
-- [ ] Hover interaction: tooltip + scale
-- [ ] Click interaction: HoloCard with entity detail
-- [ ] Focus Mode (search result highlighting)
-- [ ] Self-growing animation (WS new_node → fade-in)
-- [ ] Cluster View (>5,000 nodes → SuperNodes)
+- [x] Hover interaction: tooltip + scale
+- [x] Click interaction: HoloCard with entity detail
+- [x] Focus Mode (search result highlighting)
+- [x] Self-growing animation (WS new_node → fade-in)
+- [x] Cluster View (>5,000 nodes → SuperNodes)
 
 ## Phase F: Video Playback & Polish
-- [ ] VideoModal with timestamp seek
-- [ ] Partial-data node warning indicators
-- [ ] README with prerequisites + install guide
+- [x] VideoModal with timestamp seek
+- [x] Partial-data node warning indicators
+- [x] README with prerequisites + install guide
 - [ ] Final `run.bat` validation
